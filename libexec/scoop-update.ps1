@@ -13,6 +13,7 @@
 #   -s, --skip-hash-check  Skip hash validation (use with caution!)
 #   -q, --quiet            Hide extraneous messages
 #   -a, --all              Update all apps (alternative to '*')
+#   --assume-outdated      Ignore last update date and assume that scoop is outdated
 
 . "$PSScriptRoot\..\lib\getopt.ps1"
 . "$PSScriptRoot\..\lib\json.ps1" # 'save_install_info' in 'manifest.ps1' (indirectly)
@@ -28,7 +29,7 @@ if (get_config USE_SQLITE_CACHE) {
     . "$PSScriptRoot\..\lib\database.ps1"
 }
 
-$opt, $apps, $err = getopt $args 'gfiksqa' 'global', 'force', 'independent', 'no-cache', 'skip-hash-check', 'quiet', 'all'
+$opt, $apps, $err = getopt $args 'gfiksqa' 'global', 'force', 'independent', 'no-cache', 'skip-hash-check', 'quiet', 'all', 'assume-outdated'
 if ($err) { "scoop update: $err"; exit 1 }
 $global = $opt.g -or $opt.global
 $force = $opt.f -or $opt.force
@@ -36,7 +37,8 @@ $check_hash = !($opt.s -or $opt.'skip-hash-check')
 $use_cache = !($opt.k -or $opt.'no-cache')
 $quiet = $opt.q -or $opt.quiet
 $independent = $opt.i -or $opt.independent
-$all = $opt.a -or $opt.all
+$all = $opt.a -or $opt.al
+$assume_outdated = $opt.'assume-outdated'
 
 # load config
 $configRepo = get_config SCOOP_REPO
@@ -403,7 +405,7 @@ if (-not ($apps -or $all)) {
     }
 
     $outdated = @()
-    $updateScoop = $null -ne ($apps | Where-Object { $_ -eq 'scoop' }) -or (is_scoop_outdated)
+    $updateScoop = $null -ne ($apps | Where-Object { $_ -eq 'scoop' }) -or $assume_outdated -or (is_scoop_outdated)
     $apps = $apps | Where-Object { $_ -ne 'scoop' }
     $apps_param = $apps
 
